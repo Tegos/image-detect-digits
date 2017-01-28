@@ -1,4 +1,8 @@
+import os
+
 import cv2
+
+from config import digitheight
 
 
 def get_line_param(p1, p2):
@@ -13,11 +17,9 @@ def get_line_param(p1, p2):
     return k, b
 
 
+# draw line throw to point to full screen
 def draw_full_line(point1, point2, img):
-    # plot the secant
     k, b = get_line_param(point1, point2)
-    print point1, point2
-    print k, b
     height, width, ch = img.shape
 
     x1 = 0
@@ -28,19 +30,89 @@ def draw_full_line(point1, point2, img):
 
     p1 = (int(x1), int(y1))
     p2 = (int(x2), int(y2))
-
-    print p1, p2
-
-    # c = intercept
-    # x_min, x_max = axes.get_xlim()
-    # y_min, y_max = c, c + slope * (x_max - x_min)
-    #
-    # data_y = (int(x[0] * slope + intercept), int(x[1] * slope + intercept))
-    # x = list(x)
-    # x = np.array(x)
-    # x = x.astype(int)
-    # x = tuple(x)
-    #
-
-    # # cv2.line(img, (int(x_min), int(x_max)), (int(y_min), int(y_max)), (0, 255, 0), 3)
     cv2.line(img, p1, p2, (0, 255, 255), 2)
+
+
+def getDigitFromImage(im):
+    from sklearn.externals import joblib
+    from skimage.feature import hog
+    import numpy as np
+    import random
+    import string
+
+    # Load the classifier
+    digits_cls = os.path.join(os.path.dirname(__file__), 'res/digits_cls.pkl')
+    # clf, pp = joblib.load('res/digits_cls.pkl')
+    clf, pp = joblib.load(digits_cls)
+
+    im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+
+    # Threshold the image
+    ret, im_th = cv2.threshold(im_gray, 3, 5, cv2.THRESH_BINARY_INV)
+    thresh = cv2.adaptiveThreshold(im_gray, 255, 1, 1, 11, 2)
+
+    th2 = cv2.adaptiveThreshold(im_gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+
+    # Find contours in the image
+    # ctrs, hier = cv2.findContours(im_gray.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+
+    # RETR_CCOMP = 2L
+    # RETR_EXTERNAL = 0L
+    # RETR_FLOODFILL = 4L
+    # RETR_LIST = 1L
+    # RETR_TREE = 3L
+
+    used_img = im_th
+    cv2.imshow('used_img', used_img)
+
+    ctrs, hier = cv2.findContours(used_img.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Get rectangles contains each contour
+    rects = [cv2.boundingRect(ctr) for ctr in ctrs]
+
+    # For each rectangular region, calculate HOG features and predict
+    # the digit using Linear SVM.
+    for ctr in ctrs:
+        rect = cv2.boundingRect(ctr)
+        x, y, w, h = cv2.boundingRect(ctr)
+        if h > w and h > (digitheight * 4) / 5:
+            # Draw the rectangles
+            cv2.rectangle(used_img, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (255, 0, 0), 1)
+            # Make the rectangular region around the digit
+            leng = int(rect[3] * 1.6)
+            pt1 = int(rect[1] + rect[3] // 2 - leng // 2)
+            pt2 = int(rect[0] + rect[2] // 2 - leng // 2)
+            roi = im_th[pt1:pt1 + leng, pt2:pt2 + leng]
+            # Resize the image
+            roi = cv2.resize(roi, (28, 28), interpolation=cv2.INTER_AREA)
+            roi = cv2.dilate(roi, (3, 3))
+            # Calculate the HOG features
+            roi_hog_fd = hog(roi, orientations=9, pixels_per_cell=(14, 14), cells_per_block=(1, 1))
+            roi_hog_fd = pp.transform(np.array([roi_hog_fd], 'float64'))
+            nbr = clf.predict(roi_hog_fd)
+            cv2.putText(used_img, str(int(nbr[0])), (rect[0], rect[1]), cv2.FONT_HERSHEY_DUPLEX, 2, (0, 255, 255), 3)
+            print str(int(nbr[0]))
+    cv2.imshow('digit detect', used_img)
+
+
+def get_line_coord_perpendicular(p1, p2, dist, first=True):
+    x1 = float(p1[0])
+    y1 = float(p1[1])
+
+    x2 = float(p2[0])
+    y2 = float(p2[1])
+
+    if first:
+        x = x1
+        y = y1
+
+    else:
+        x = x2
+        y = y2
+
+    k, b = get_line_param(p1, p2)
+
+    y_new = int(y + dist)
+    x_new = int(k * (y - y_new) + x)
+    return x_new, y_new
