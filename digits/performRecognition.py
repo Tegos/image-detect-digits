@@ -20,14 +20,15 @@ clf, pp = joblib.load('digits_cls.pkl')
 im = cv2.imread(image_path)
 
 # Convert to grayscale and apply Gaussian filtering
-im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)  # im_gray = cv2.GaussianBlur(im_gray, (5, 5), 0)
+im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+# im_gray = cv2.GaussianBlur(im_gray, (5, 5), 0)
 
 # Threshold the image
-ret, im_th = cv2.threshold(im_gray, 90, 255, cv2.THRESH_BINARY_INV)
+ret, im_th = cv2.threshold(im_gray, 90, 250, cv2.THRESH_BINARY_INV)
 
 # Find contours in the image
-# ctrs, hier = cv2.findContours(im_th.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-ctrs, hier = cv2.findContours(im_th.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+ctrs, hier = cv2.findContours(im_th.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+# ctrs, hier = cv2.findContours(im_th.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
 # Get rectangles contains each contour
 rects = [cv2.boundingRect(ctr) for ctr in ctrs]
@@ -36,7 +37,7 @@ rects = [cv2.boundingRect(ctr) for ctr in ctrs]
 # the digit using Linear SVM.
 for rect in rects:
     # Draw the rectangles
-    cv2.rectangle(im, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (0, 255, 0), 3)
+    cv2.rectangle(im, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (255, 0, 0), 1)
     # Make the rectangular region around the digit
     leng = int(rect[3] * 1.6)
     pt1 = int(rect[1] + rect[3] // 2 - leng // 2)
