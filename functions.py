@@ -50,22 +50,10 @@ def getDigitFromImage(im):
 
     # Threshold the image
     ret, im_th = cv2.threshold(im_gray, 3, 5, cv2.THRESH_BINARY_INV)
-    thresh = cv2.adaptiveThreshold(im_gray, 255, 1, 1, 11, 2)
-
-    # img = cv2.medianBlur(im_gray, 1)
-    # img = im_gray
-    # th2 = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
-    # cv2.imshow('th2', th2)
 
     # Find contours in the image
     # ctrs, hier = cv2.findContours(im_gray.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     ret, im_th_inv = cv2.threshold(im_gray, 10, 50, cv2.THRESH_BINARY_INV)
-
-    # RETR_CCOMP = 2L
-    # RETR_EXTERNAL = 0L
-    # RETR_FLOODFILL = 4L
-    # RETR_LIST = 1L
-    # RETR_TREE = 3L
 
     used_img = im_th_inv
 
@@ -97,7 +85,7 @@ def getDigitFromImage(im):
             roi_hog_fd = pp.transform(np.array([roi_hog_fd], 'float64'))
             nbr = clf.predict(roi_hog_fd)
             cv2.putText(used_img, str(int(nbr[0])), (rect[0], rect[1]), cv2.FONT_HERSHEY_DUPLEX, 2, (0, 255, 255), 3)
-            print str(int(nbr[0]))
+            print 'main digit: ' + str(int(nbr[0]))
     cv2.imshow('digit detect', used_img)
 
 
