@@ -1,4 +1,5 @@
 import cv2
+import imutils as imutils
 import numpy as np
 from matplotlib import pyplot as plt
 from functions import *
@@ -40,15 +41,23 @@ for pt in zip(*loc[::-1]):
     # cv2.rectangle(img_rgb, line_coord_x, point_2_perpendicular, (255, 0, 0), 2)
 
     rect = cv2.minAreaRect(
-        np.array([line_coord_x, line_coord_y,
+        np.array([line_coord_x,
+                  line_coord_y,
                   point_1_perpendicular,
-                  point_2_perpendicular], dtype=np.int32
+                  point_2_perpendicular
+                  ], dtype=np.int32
                  )
     )
+
+    center = rect[0]
+    angle = rect[2]
+
+    print angle
+
     box = cv2.cv.BoxPoints(rect)
     box = np.int0(box)
 
-    cv2.drawContours(img_rgb, [box], 0, CONTOUR_COLOR, 2)
+    cv2.drawContours(img_rgb, [box], 0, CONTOUR_COLOR, 1)
 
     # get only digit contour
     mask = np.zeros_like(img_rgb)  # Create mask where white is what we want, black otherwise
@@ -56,8 +65,17 @@ for pt in zip(*loc[::-1]):
     out = np.zeros_like(img_rgb)  # Extract out the object and place into output image
     out[mask == 255] = img_rgb[mask == 255]
 
-    # Show the output image
-    # cv2.imshow('Output', out)
+    # rotated = imutils.rotate_bound(out, -1 * angle)
+    # cv2.imshow("Rotated (Correct)", rotated)
+
+    im_gray = cv2.cvtColor(out, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(out, cv2.COLOR_BGR2GRAY)
+    gray_b = cv2.cvtColor(out, cv2.COLOR_RGB2GRAY)
+    im_at_mean = cv2.adaptiveThreshold(im_gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 5, 10)
+    # gray = cv2.GaussianBlur(gray, (3, 3), 0)
+    edged = cv2.Canny(gray, 20, 100)
+    cv2.imshow('Output im_at_mean', im_at_mean)
+    out = im_at_mean
 
     # cv2.line(img_rgb, line_coord_x, point_1_perpendicular, (0, 205, 0), 2)
     # cv2.line(img_rgb, line_coord_y, point_2_perpendicular, (0, 205, 0), 2)

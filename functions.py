@@ -45,17 +45,21 @@ def getDigitFromImage(im):
     # clf, pp = joblib.load('res/digits_cls.pkl')
     clf, pp = joblib.load(digits_cls)
 
-    im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    # im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    im_gray = im
 
     # Threshold the image
     ret, im_th = cv2.threshold(im_gray, 3, 5, cv2.THRESH_BINARY_INV)
     thresh = cv2.adaptiveThreshold(im_gray, 255, 1, 1, 11, 2)
 
-    th2 = cv2.adaptiveThreshold(im_gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+    # img = cv2.medianBlur(im_gray, 1)
+    # img = im_gray
+    # th2 = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+    # cv2.imshow('th2', th2)
 
     # Find contours in the image
     # ctrs, hier = cv2.findContours(im_gray.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
+    ret, im_th_inv = cv2.threshold(im_gray, 10, 50, cv2.THRESH_BINARY_INV)
 
     # RETR_CCOMP = 2L
     # RETR_EXTERNAL = 0L
@@ -63,10 +67,11 @@ def getDigitFromImage(im):
     # RETR_LIST = 1L
     # RETR_TREE = 3L
 
-    used_img = im_th
+    used_img = im_th_inv
+
     cv2.imshow('used_img', used_img)
 
-    ctrs, hier = cv2.findContours(used_img.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    ctrs, hier = cv2.findContours(used_img.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     # Get rectangles contains each contour
     rects = [cv2.boundingRect(ctr) for ctr in ctrs]
