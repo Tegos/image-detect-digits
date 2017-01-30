@@ -52,8 +52,6 @@ for pt in zip(*loc[::-1]):
     center = rect[0]
     angle = rect[2]
 
-    # print angle
-
     box = cv2.cv.BoxPoints(rect)
     box = np.int0(box)
 

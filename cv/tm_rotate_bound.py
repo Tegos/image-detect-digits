@@ -16,15 +16,14 @@ img_original = img_rgb.copy()
 
 w, h = template.shape[::-1]
 
-for r_angle in range(0, 360, 1):
+for r_angle in range(0, 370, 10):
     print r_angle
 
     rotated = imutils.rotate_bound(template, r_angle)
-    rotated_source = imutils.rotate_bound(img_gray, r_angle)
     cv2.imshow("Rotated", rotated)
 
     res = cv2.matchTemplate(img_gray, rotated, cv2.TM_CCOEFF_NORMED)
-    threshold = 0.75
+    threshold = 0.7
     loc = np.where(res >= threshold)
     for pt in zip(*loc[::-1]):
         bound_1 = pt
@@ -37,11 +36,7 @@ for r_angle in range(0, 360, 1):
 
         # detecting main digit
         # for this test direction of main digit is down 1
-        if r_angle < 180:
-            direction = 1
-        else:
-            direction = -1
-
+        direction = 1
         rect_digit_size = 40
         digit_offset = rect_digit_size * direction
         point_1_perpendicular = get_line_coord_perpendicular(line_coord_x, line_coord_y, digit_offset)
@@ -64,7 +59,7 @@ for r_angle in range(0, 360, 1):
         center = rect[0]
         angle = rect[2]
 
-        print angle
+        # print angle
 
         box = cv2.cv.BoxPoints(rect)
         box = np.int0(box)

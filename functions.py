@@ -37,8 +37,6 @@ def getDigitFromImage(im):
     from sklearn.externals import joblib
     from skimage.feature import hog
     import numpy as np
-    import random
-    import string
 
     # Load the classifier
     digits_cls = os.path.join(os.path.dirname(__file__), 'res/digits_cls.pkl')
@@ -109,3 +107,23 @@ def get_line_coord_perpendicular(p1, p2, dist, first=True):
     y_new = int(y + dist)
     x_new = int(k * (y - y_new) + x)
     return x_new, y_new
+
+
+def getRandomString(size=6):
+    import random
+    import string
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(random.choice(chars) for _ in range(size))
+
+
+def rotate(image, angle, center=None, scale=1.0):
+    (h, w) = image.shape[:2]
+
+    if center is None:
+        center = (w / 2, h / 2)
+
+    # Perform the rotation
+    M = cv2.getRotationMatrix2D(center, angle, scale)
+    rotated = cv2.warpAffine(image, M, (w, h))
+
+    return rotated
