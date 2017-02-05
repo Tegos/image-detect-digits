@@ -6,11 +6,12 @@ from functions import *
 from config import *
 
 image_path = '../res/555.png'
-image_template = '../res/template.png'
+image_template = '../res/909.png'
 
 img_rgb = cv2.imread(image_path)
 img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
 template = cv2.imread(image_template, 0)
+template_original = cv2.imread(image_template, -1)
 
 img_original = img_rgb.copy()
 
@@ -21,7 +22,10 @@ for r_angle in range(0, 360, 1):
 
     rotated = imutils.rotate_bound(template, r_angle)
     rotated_source = imutils.rotate_bound(img_gray, r_angle)
-    cv2.imshow("Rotated", rotated)
+    orig_mask = template_original[:, :, 3]
+    orig_mask_inv = cv2.bitwise_not(orig_mask)
+    cv2.imshow("Rotated", orig_mask_inv)
+    # cv2.waitKey(0)
 
     res = cv2.matchTemplate(img_gray, rotated, cv2.TM_CCOEFF_NORMED)
     threshold = 0.75
