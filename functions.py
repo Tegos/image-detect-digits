@@ -20,7 +20,7 @@ def get_line_param(p1, p2):
 # draw line throw to point to full screen
 def draw_full_line(point1, point2, img):
     k, b = get_line_param(point1, point2)
-    height, width, ch = img.shape
+    height, width = img.shape
 
     x1 = 0
     y1 = k * x1 + b
@@ -31,12 +31,12 @@ def draw_full_line(point1, point2, img):
     p1 = (int(x1), int(y1))
     p2 = (int(x2), int(y2))
     cv2.line(img, p1, p2, (0, 255, 255), 2)
+    return p1, p2
 
 
 def getDigitFromImage(im):
     from sklearn.externals import joblib
     from skimage.feature import hog
-
 
     # Load the classifier
     digits_cls = os.path.join(os.path.dirname(__file__), 'res/digits_cls.pkl')
