@@ -199,3 +199,21 @@ def drawMatches(img1, kp1, img2, kp2, matches):
 
     # Also return the image if you'd like a copy
     return out
+
+
+def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, point_1, point2):
+    w, h = img_bracket_middle.shape[::-1]
+    # Crop from x, y, w, h
+
+    add_y = h
+
+    add_x = point_1[0]
+    while add_x > 0:
+        new_point_1 = (add_x, point_1[1] - h)
+        new_point_2 = (point_1[0] - w, point_1[1] + h)
+        cropped = img[
+                  new_point_1[0]:new_point_1[1],
+                  new_point_2[0]:new_point_2[1]
+                  ]
+        cv2.rectangle(img, new_point_1, new_point_2, (0, 0, 255), 2)
+        add_x -= w

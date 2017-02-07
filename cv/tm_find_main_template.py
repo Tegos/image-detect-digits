@@ -5,6 +5,8 @@ from config import *
 import glob
 
 image_template = '../res/templ.png'
+image_bracket_start_path = '../res/bound_open.png'
+image_bracket_start = cv2.imread(image_bracket_start_path, 0);
 
 template = cv2.imread(image_template, 0)
 
@@ -32,6 +34,7 @@ for name in images:
 
         for scale in np.linspace(0.5, 1.7, 9)[::-1]:
             resized = imutils.resize(template, width=int(template.shape[1] * scale))
+            resize_bracket_start = imutils.resize(image_bracket_start, width=int(image_bracket_start.shape[1] * scale))
 
             w, h = resized.shape[::-1]
 
@@ -63,6 +66,10 @@ for name in images:
                 bracket_line_2 = (bound_2[0], int(bound_2[1]) - h)
                 bracket_points = draw_full_line(bracket_line_1, bracket_line_2, rotated_source)
 
+                # find start bracket
+                findCoordStartEndBracket(
+                    rotated_source, template, resize_bracket_start, bracket_line_1, bracket_line_2
+                )
                 # print point_1_perpendicular
                 # print point_2_perpendicular
 
@@ -79,7 +86,6 @@ for name in images:
                 #
                 # center = rect[0]
                 # angle = rect[2]
-
 
                 # box = cv2.cv.BoxPoints(rect)
                 # box = np.int0(box)
