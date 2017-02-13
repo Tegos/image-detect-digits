@@ -50,15 +50,6 @@ for imagePath in glob.glob("images" + "/*.png"):
         result = cv2.matchTemplate(edged, template, cv2.TM_CCOEFF)
         (_, maxVal, _, maxLoc) = cv2.minMaxLoc(result)
 
-        # check to see if the iteration should be visualized
-        if args.get("visualize", False):
-            # draw a bounding box around the detected region
-            clone = np.dstack([edged, edged, edged])
-            cv2.rectangle(clone, (maxLoc[0], maxLoc[1]),
-                          (maxLoc[0] + tW, maxLoc[1] + tH), (0, 0, 255), 2)
-            cv2.imshow("Visualize", clone)
-            cv2.waitKey(0)
-
         # if we have found a new maximum correlation value, then ipdate
         # the bookkeeping variable
         if found is None or maxVal > found[0]:

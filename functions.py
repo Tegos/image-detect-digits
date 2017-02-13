@@ -201,19 +201,81 @@ def drawMatches(img1, kp1, img2, kp2, matches):
     return out
 
 
-def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, point_1, point2):
+def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, point_1, point_2):
     w, h = img_bracket_middle.shape[::-1]
     # Crop from x, y, w, h
 
-    add_y = h
+    add_y_min = point_1[1] - h
+    add_y_max = point_1[1] + h
 
+    start_x = point_1[0]
     add_x = point_1[0]
-    while add_x > 0:
-        new_point_1 = (add_x, point_1[1] - h)
-        new_point_2 = (point_1[0] - w, point_1[1] + h)
+    counter = 0
+    stop = False
+    while add_x > 0 and not stop:
+        new_point_1 = (start_x, add_y_min)
+        new_point_2 = (add_x - w, add_y_max)
         cropped = img[
-                  new_point_1[0]:new_point_1[1],
-                  new_point_2[0]:new_point_2[1]
+                  new_point_1[1]:new_point_2[1],
+                  new_point_2[0]:new_point_1[0]
                   ]
-        cv2.rectangle(img, new_point_1, new_point_2, (0, 0, 255), 2)
-        add_x -= w
+        # cv2.imshow('cropped', cropped)
+        # cv2.waitKey(0)
+
+        find_pos = MultiScaleSearchTemplate(cropped, img_start_bracket)
+        print find_pos[0], find_pos[1], counter
+        stop = find_pos[0]
+        if stop:
+            cv2.rectangle(img, new_point_1, new_point_2, (0, 0, 255), 2)
+
+        add_x -= w / 2
+        counter += 1
+
+
+def MultiScaleSearchTemplate(img, template):
+    import imutils
+    location = False
+    found = False
+    w_img, h_img = img.shape[::-1]
+
+    for scale in np.linspace(0.7, 1.7, 30)[::-1]:
+        # print scale, found
+        if found:
+            break
+        resize_template = imutils.resize(template, width=int(template.shape[1] * scale))
+
+        # cv2.imshow('img_edges', img_edges)
+        # cv2.imshow('template_edges', template_edges)
+        # cv2.waitKey(0)
+        w, h = resize_template.shape[::-1]
+        if w_img < w or h_img < h:
+            continue
+
+        thresh_template = cv2.threshold(resize_template, 0, 255,
+                                        cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+
+        thresh_img = cv2.threshold(img, 0, 255,
+                                   cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+
+        # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (1, 5))
+        # thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+        cv2.namedWindow('thresh', cv2.WINDOW_NORMAL)
+        # cv2.imshow('thresh', thresh_img)
+        cv2.imshow('thresh', thresh_template)
+        # cv2.waitKey(0)
+
+        # result = cv2.matchTemplate(img, resize_template, cv2.TM_CCOEFF_NORMED)
+        result = cv2.matchTemplate(thresh_img, thresh_template, cv2.TM_CCOEFF_NORMED)
+
+        threshold = 0.75
+        loc = np.where(result >= threshold)
+        for pt in zip(*loc[::-1]):
+            bound_1 = pt
+            bound_2 = (pt[0] + w, pt[1] + h)
+            cv2.rectangle(img, bound_1, bound_2, (0, 0, 255), 2)
+            location = (bound_1, bound_2)
+            # print location
+            found = True
+            break
+
+    return found, location
