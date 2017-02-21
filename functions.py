@@ -145,14 +145,15 @@ def getDigitFromImageSimple(im):
     # im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     roi = im
     # Threshold the image
-    ret, im_th = cv2.threshold(roi, 3, 5, cv2.THRESH_BINARY_INV)
+    ret, im_th = cv2.threshold(roi, 190, 250, cv2.THRESH_BINARY_INV)
+    roi = im_th
 
     # Resize the image
-    # roi = cv2.resize(roi, (28, 28), interpolation=cv2.INTER_AREA)
-    # roi = cv2.dilate(roi, (3, 3))
+    roi = cv2.resize(roi, (28, 28), interpolation=cv2.INTER_AREA)
+    roi = cv2.dilate(roi, (3, 3))
 
     cv2.namedWindow('roi', cv2.WINDOW_NORMAL)
-    cv2.imshow('roi', roi)
+    cv2.imshow('roi', im_th)
     cv2.waitKey(0)
 
     # Calculate the HOG features
@@ -161,6 +162,51 @@ def getDigitFromImageSimple(im):
     nbr = clf.predict(roi_hog_fd)
     # cv2.putText(used_img, str(int(nbr[0])), (rect[0], rect[1]), cv2.FONT_HERSHEY_DUPLEX, 2, (0, 255, 255), 3)
     print 'main digit: ' + str(int(nbr[0]))
+
+
+def getDigitFromImageEdit(im):
+    from sklearn.externals import joblib
+    from skimage.feature import hog
+
+    cv2.namedWindow('digit', cv2.WINDOW_NORMAL)
+    cv2.imshow('digit', im)
+    cv2.waitKey(0)
+
+    # Load the classifier
+    digits_cls = os.path.join(os.path.dirname(__file__), 'res/digits_cls.pkl')
+    clf, pp = joblib.load(digits_cls)
+
+    # Threshold the image
+    ret, im_th = cv2.threshold(im, 30, 100, cv2.THRESH_BINARY_INV)
+
+    # Find contours in the image
+    ctrs, hier = cv2.findContours(im, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Get rectangles contains each contour
+    rects = [cv2.boundingRect(ctr) for ctr in ctrs]
+
+    # For each rectangular region, calculate HOG features and predict
+    # the digit using Linear SVM.
+    for ctr in ctrs:
+        rect = cv2.boundingRect(ctr)
+        x, y, w, h = cv2.boundingRect(ctr)
+        if h > w and h > (digitheight * 4) / 5:
+            # Draw the rectangles
+            # cv2.rectangle(im, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (255, 0, 0), 1)
+            # Make the rectangular region around the digit
+            leng = int(rect[3] * 1.6)
+            pt1 = int(rect[1] + rect[3] // 2 - leng // 2)
+            pt2 = int(rect[0] + rect[2] // 2 - leng // 2)
+            roi = im_th[pt1:pt1 + leng, pt2:pt2 + leng]
+            # Resize the image
+            roi = cv2.resize(roi, (28, 28), interpolation=cv2.INTER_AREA)
+            roi = cv2.dilate(roi, (3, 3))
+            # Calculate the HOG features
+            roi_hog_fd = hog(roi, orientations=9, pixels_per_cell=(14, 14), cells_per_block=(1, 1))
+            roi_hog_fd = pp.transform(np.array([roi_hog_fd], 'float64'))
+            nbr = clf.predict(roi_hog_fd)
+            # cv2.putText(im, str(int(nbr[0])), (rect[0], rect[1]), cv2.FONT_HERSHEY_DUPLEX, 2, (0, 255, 255), 3)
+            print 'main digit: ' + str(int(nbr[0]))
 
 
 def get_line_coord_perpendicular(p1, p2, dist, first=True):
@@ -278,8 +324,8 @@ def drawMatches(img1, kp1, img2, kp2, matches):
 
 
 def cropImage(image_source, point_1, point_2):
-    x1, y1 = point_1[0], point_1[1]
-    x2, y2 = point_2[0], point_2[1]
+    x1, y1 = int(point_1[0]), int(point_1[1])
+    x2, y2 = int(point_2[0]), int(point_2[1])
     cropped = image_source[y1:y2, x1:x2]
     return cropped
 
@@ -303,16 +349,17 @@ def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, img_end
         new_point_1 = (add_x - w, add_y_min)
         new_point_2 = (start_x, add_y_max)
 
-        x1, y1 = new_point_1[0], new_point_1[1]
-        x2, y2 = new_point_2[0], new_point_2[1]
+        x1, y1 = int(new_point_1[0]), int(new_point_1[1])
+        x2, y2 = int(new_point_2[0]), int(new_point_2[1])
 
         cropped = img[y1:y2, x1:x2]
 
         find_pos = MultiScaleSearchTemplate(cropped, img_start_bracket)
-        print find_pos[0], find_pos[1], counter
+
         stop = find_pos[0]
         if stop:
             if DEBUG:
+                print find_pos[0], find_pos[1], counter
                 cv2.rectangle(img, new_point_1, new_point_2, (0, 0, 255), 2)
             result_1 = (new_point_1[0], new_point_1[1] - h * k_size)
 
@@ -325,7 +372,7 @@ def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, img_end
     add_x = point_2[0]
     counter = 0
     stop = False
-    print point_2
+    # print point_2
 
     # cv2.namedWindow('img_end_bracket', cv2.WINDOW_NORMAL)
     # cv2.namedWindow('img_start_bracket', cv2.WINDOW_NORMAL)
@@ -336,8 +383,10 @@ def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, img_end
         new_point_1 = (start_x, add_y_min)
         new_point_2 = (add_x + w, add_y_max)
 
-        x1, y1 = start_x, add_y_min
-        x2, y2 = add_x + w, add_y_max
+        x1, y1 = int(start_x), int(add_y_min)
+        x2, y2 = int(add_x + w), int(add_y_max)
+
+        # if isInt(x1)
 
         cropped = img[y1:y2, x1:x2]
 
@@ -346,10 +395,11 @@ def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, img_end
         # cv2.waitKey(0)
 
         find_pos = MultiScaleSearchTemplate(cropped, img_end_bracket)
-        print find_pos[0], find_pos[1], counter
+
         stop = find_pos[0]
         if stop:
             if DEBUG:
+                print find_pos[0], find_pos[1], counter
                 cv2.rectangle(img, new_point_1, new_point_2, (0, 0, 255), 2)
             result_2 = (new_point_2[0], new_point_2[1])
 
@@ -418,3 +468,8 @@ def secondsToStringTime(seconds):
     m, s = divmod(seconds, 60)
     h, m = divmod(m, 60)
     print "%d:%02d:%02d" % (h, m, s)
+
+
+def isInt(obj):
+    res = isinstance(obj, (int, long))
+    return res

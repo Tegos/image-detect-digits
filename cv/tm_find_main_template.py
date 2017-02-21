@@ -1,9 +1,12 @@
 import cv2
 import imutils as imutils
+from pytesseract import *
+
 from functions import *
 from config import *
 import glob
 import time
+from PIL import Image
 
 image_template = '../res/template.png'
 image_bracket_start_path = '../res/br_start.png'
@@ -32,7 +35,7 @@ for name in images:
     img_original = img_rgb.copy()
     counter_all = 0
     for r_angle in range(0, 360, 30):
-        print r_angle
+        print 'Angle: ', r_angle
 
         rotated = imutils.rotate_bound(template, r_angle)
         rotated_source = imutils.rotate_bound(img_gray, r_angle)
@@ -76,11 +79,22 @@ for name in images:
 
                 if start_bracket_point is not None and end_bracket_point is not None:
                     bracket_with_digit = cropImage(rotated_source_original, start_bracket_point, end_bracket_point)
+
                 # getDigitFromImageNew(cropMainDigit)
 
                 if isImage(cropMainDigit):
+                    true_rotate_main_digit = imutils.rotate_bound(cropMainDigit, -r_angle)
+                    res_file_true = '../images/res/' + file_name + '_' + str(r_angle) + '_rotate_digit_' + str(
+                        counter_all) + '.png'
                     res_file = '../images/res/' + file_name + '_' + str(r_angle) + '_digit_' + str(counter_all) + '.png'
                     cv2.imwrite(res_file, cropMainDigit)
+                    cv2.imwrite(res_file_true, true_rotate_main_digit)
+                    full_path = os.path.dirname(__file__) + '/../images/res/' + file_name + '_' + str(
+                        r_angle) + '_digit_' + str(counter_all) + '.png'
+                    # print full_path
+                    img_digit = Image.open(full_path)
+                    # image_to_string(img_digit)
+                    # getDigitFromImageEdit(true_rotate_main_digit)
 
                 if isImage(bracket_with_digit):
                     res_file = '../images/res/' + file_name + '_' + str(r_angle) + '_bracket_with_digit_' + str(
@@ -90,23 +104,10 @@ for name in images:
                 # line
                 bracket_points = draw_full_line(bracket_line_1, bracket_line_2, rotated_source_original)
 
-                # cv2.drawContours(img_rgb, [box], 0, CONTOUR_COLOR, 1)
-
-                # get only digit contour
-                mask = np.zeros_like(img_rgb)  # Create mask where white is what we want, black otherwise
-                # cv2.drawContours(mask, [box], 0, CONTOUR_COLOR, -1)  # Draw filled contour in mask
-                out = np.zeros_like(img_rgb)  # Extract out the object and place into output image
-                out[mask == 255] = img_rgb[mask == 255]
-
-                # rotated = imutils.rotate_bound(out, -1 * angle)
-                # cv2.imshow("Rotated (Correct)", rotated)
-
                 res_file = '../images/res/' + file_name + '_' + str(r_angle) + '.png'
                 cv2.imwrite(res_file, rotated_source_original)
 
                 # break
-
-                # cv2.line(img_rgb, line_coord_x, line_coord_y, (0, 255, 0), 3)
 
                 # cv2.namedWindow('Detected', cv2.WINDOW_NORMAL)
                 # cv2.imshow('Detected', img_rgb)
