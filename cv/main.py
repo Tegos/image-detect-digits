@@ -1,16 +1,11 @@
 import cv2
 import imutils as imutils
-from pytesseract import *
 
 from functions import *
 from config import *
 import glob
 import time
 from PIL import Image
-
-image_template = '../res/template.png'
-image_bracket_start_path = '../res/br_start.png'
-image_bracket_end_path = '../res/br_end.png'
 
 image_bracket_start = cv2.imread(image_bracket_start_path, 0)
 image_bracket_end = cv2.imread(image_bracket_end_path, 0)
@@ -92,7 +87,7 @@ for name in images:
                     full_path = os.path.dirname(__file__) + '/../images/res/' + file_name + '_' + str(
                         r_angle) + '_digit_' + str(counter_all) + '.png'
                     # print full_path
-                    img_digit = Image.open(full_path)
+                    EdgeDetect(res_file_true, 120, 255)
                     # image_to_string(img_digit)
                     # getDigitFromImageEdit(true_rotate_main_digit)
 
@@ -108,13 +103,7 @@ for name in images:
                 cv2.imwrite(res_file, rotated_source_original)
 
                 # break
-
-                # cv2.namedWindow('Detected', cv2.WINDOW_NORMAL)
-                # cv2.imshow('Detected', img_rgb)
-                # cv2.waitKey(0)
                 cv2.destroyAllWindows()
-                # res_file = '../images/res/' + file_name
-                # cv2.imwrite(res_file, img_rgb)
 
 end = time.time()
 elapsed = end - start

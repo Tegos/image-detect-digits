@@ -44,3 +44,20 @@ fabric.properties
 
 .gitignore
 .idea/
+/images/
+code/pytesseract.pyc
+code/temp.bmp
+code/temp.txt
+config.pyc
+cv/image_result/
+functions.pyc
+images/478107100.png
+images/all/
+images/etka/
+images/no/
+images/res/
+multiscale-template-matching/imutils.pyc
+res/no/
+templates/1.png
+templates/2.png
+templates/8.png

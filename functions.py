@@ -1,4 +1,6 @@
 import os
+
+import Image
 import numpy as np
 import cv2
 
@@ -68,7 +70,7 @@ def getDigitFromImage(im):
     for ctr in ctrs:
         rect = cv2.boundingRect(ctr)
         x, y, w, h = cv2.boundingRect(ctr)
-        if h > w and h > (digitheight * 4) / 5:
+        if h > w and h > (digit_height * 4) / 5:
             # Draw the rectangles
             cv2.rectangle(used_img, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (255, 0, 0), 1)
             # Make the rectangular region around the digit
@@ -110,7 +112,7 @@ def getDigitFromImageNew(im):
         rect = cv2.boundingRect(ctr)
         x, y, w, h = cv2.boundingRect(ctr)
         # if h > w and h > (digitheight * 4) / 5:
-        if h > (digitheight * 4) / 5:
+        if h > (digit_height * 4) / 5:
             # Draw the rectangles
             cv2.rectangle(im, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (255, 0, 0), 1)
             # Make the rectangular region around the digit
@@ -142,19 +144,19 @@ def getDigitFromImageSimple(im):
     # clf, pp = joblib.load('res/digits_cls.pkl')
     clf, pp = joblib.load(digits_cls)
 
-    # im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-    roi = im
+    im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    roi = im_gray
     # Threshold the image
     ret, im_th = cv2.threshold(roi, 190, 250, cv2.THRESH_BINARY_INV)
-    roi = im_th
+    # roi = im_th
 
     # Resize the image
     roi = cv2.resize(roi, (28, 28), interpolation=cv2.INTER_AREA)
     roi = cv2.dilate(roi, (3, 3))
 
-    cv2.namedWindow('roi', cv2.WINDOW_NORMAL)
-    cv2.imshow('roi', im_th)
-    cv2.waitKey(0)
+    # cv2.namedWindow('roi', cv2.WINDOW_NORMAL)
+    # cv2.imshow('roi', im_th)
+    # cv2.waitKey(0)
 
     # Calculate the HOG features
     roi_hog_fd = hog(roi, orientations=9, pixels_per_cell=(14, 14), cells_per_block=(1, 1))
@@ -162,51 +164,13 @@ def getDigitFromImageSimple(im):
     nbr = clf.predict(roi_hog_fd)
     # cv2.putText(used_img, str(int(nbr[0])), (rect[0], rect[1]), cv2.FONT_HERSHEY_DUPLEX, 2, (0, 255, 255), 3)
     print 'main digit: ' + str(int(nbr[0]))
+    print 'predict: '
+    print nbr
+    return int(nbr[0])
 
 
-def getDigitFromImageEdit(im):
-    from sklearn.externals import joblib
-    from skimage.feature import hog
-
-    cv2.namedWindow('digit', cv2.WINDOW_NORMAL)
-    cv2.imshow('digit', im)
-    cv2.waitKey(0)
-
-    # Load the classifier
-    digits_cls = os.path.join(os.path.dirname(__file__), 'res/digits_cls.pkl')
-    clf, pp = joblib.load(digits_cls)
-
-    # Threshold the image
-    ret, im_th = cv2.threshold(im, 30, 100, cv2.THRESH_BINARY_INV)
-
-    # Find contours in the image
-    ctrs, hier = cv2.findContours(im, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-    # Get rectangles contains each contour
-    rects = [cv2.boundingRect(ctr) for ctr in ctrs]
-
-    # For each rectangular region, calculate HOG features and predict
-    # the digit using Linear SVM.
-    for ctr in ctrs:
-        rect = cv2.boundingRect(ctr)
-        x, y, w, h = cv2.boundingRect(ctr)
-        if h > w and h > (digitheight * 4) / 5:
-            # Draw the rectangles
-            # cv2.rectangle(im, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (255, 0, 0), 1)
-            # Make the rectangular region around the digit
-            leng = int(rect[3] * 1.6)
-            pt1 = int(rect[1] + rect[3] // 2 - leng // 2)
-            pt2 = int(rect[0] + rect[2] // 2 - leng // 2)
-            roi = im_th[pt1:pt1 + leng, pt2:pt2 + leng]
-            # Resize the image
-            roi = cv2.resize(roi, (28, 28), interpolation=cv2.INTER_AREA)
-            roi = cv2.dilate(roi, (3, 3))
-            # Calculate the HOG features
-            roi_hog_fd = hog(roi, orientations=9, pixels_per_cell=(14, 14), cells_per_block=(1, 1))
-            roi_hog_fd = pp.transform(np.array([roi_hog_fd], 'float64'))
-            nbr = clf.predict(roi_hog_fd)
-            # cv2.putText(im, str(int(nbr[0])), (rect[0], rect[1]), cv2.FONT_HERSHEY_DUPLEX, 2, (0, 255, 255), 3)
-            print 'main digit: ' + str(int(nbr[0]))
+def getDigitImage(im):
+    print im
 
 
 def get_line_coord_perpendicular(p1, p2, dist, first=True):
@@ -436,7 +400,7 @@ def MultiScaleSearchTemplate(img, template, threshold=0.75):
 
         # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (1, 5))
         # thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
-        cv2.namedWindow('thresh', cv2.WINDOW_NORMAL)
+        # cv2.namedWindow('thresh', cv2.WINDOW_NORMAL)
         # cv2.imshow('thresh', thresh_template)
         # cv2.waitKey(0)
 
@@ -473,3 +437,95 @@ def secondsToStringTime(seconds):
 def isInt(obj):
     res = isinstance(obj, (int, long))
     return res
+
+
+def EdgeDetect(file_name, thresh_min, thresh_max):
+    image = cv2.imread(file_name)
+    im_bw = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    im_bw = cv2.GaussianBlur(im_bw, (1, 1), 0)
+    # image = AutCanny(gray)
+
+    (thresh, im_bw) = cv2.threshold(im_bw, thresh_min, thresh_max, 0)
+    # cv2.imwrite(file_name + '_bw.png', im_bw)
+
+    contours, hierarchy = cv2.findContours(im_bw, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # cv2.drawContours(image, contours, -1, (0, 255, 0), 1)
+    # cv2.imwrite(file_name + '_ctn.png', image)
+
+    for i in range(0, len(contours)):
+        cnt = contours[i]
+        # mask = np.zeros(im2.shape,np.uint8)
+        # cv2.drawContours(mask,[cnt],0,255,-1)
+        x, y, w, h = cv2.boundingRect(cnt)
+        if h > w and h > (digit_height * 4) / 5:
+            # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            box = image[y:y + h, x:x + w]
+            name_box = file_name + '_' + str(i) + '_ctn.png'
+            cv2.imwrite(name_box, box)
+            # toA4(name_box)
+            file_name_pad = AddPadding(name_box)
+            image_pad = cv2.imread(file_name_pad)
+            digit = getDigitFromImageSimple(image_pad)
+
+            details.append(digit)
+
+
+def AutCanny(image, sigma=0.33):
+    # compute the median of the single channel pixel intensities
+    v = np.median(image)
+
+    # apply automatic Canny edge detection using the computed median
+    lower = int(max(0, (1.0 - sigma) * v))
+    upper = int(min(255, (1.0 + sigma) * v))
+    edged = cv2.Canny(image, lower, upper)
+
+    # return the edged image
+    return edged
+
+
+def RotateTransparent(res_file, angle=0):
+    img = Image.open(res_file)
+    # converted to have an alpha layer
+    im2 = img.convert('RGBA')
+    # rotated image
+    rot = im2.rotate(angle, expand=1)
+    # a white image same size as rotated image
+    fff = Image.new('RGBA', rot.size, (255,) * 4)
+    # create a composite image using the alpha layer of rot as a mask
+    out = Image.composite(rot, fff, rot)
+    # save your work (converting back to mode='1' or whatever..)
+    # out.convert(img.mode).save(res_file_true)
+    return out
+
+
+def toA4(image_file):
+    from PIL import Image
+
+    im = Image.open(image_file)
+    a4im = Image.new('RGB',
+                     (595, 842),  # A4 at 72dpi
+                     (255, 255, 255))  # White
+    a4im.paste(im, im.getbbox())  # Not centered, top-left corner
+    a4im.save(image_file + 'a4.pdf', 'PDF', quality=100)
+
+
+def AddPadding(img_file):
+    old_im = Image.open(img_file)
+    old_size = old_im.size
+
+    new_size = (50, 50)
+    new_im = Image.new("RGB", new_size, (255, 255, 255))
+    new_im.paste(old_im, ((new_size[0] - old_size[0]) / 2,
+                          (new_size[1] - old_size[1]) / 2))
+
+    res_file = img_file + '_padding.png'
+    new_im.save(res_file)
+    return res_file
+
+
+def writeText(data):
+    text_file = open("result.txt", "w")
+    text_file.write(data)
+    text_file.close()
