@@ -9,7 +9,15 @@ threshold_middle_bracket = 0.79
 scale_params = [0.4, 1.2, 12]
 
 CONTOUR_COLOR = (0, 0, 255)
-digit_height = 7
+
+digit_height = 10
+
+max_digit_height = 33
+
+
+min_width_digit = 7
+
 DEBUG = True
 k_size_bound_on_bracket = 1.2
+
 details = []

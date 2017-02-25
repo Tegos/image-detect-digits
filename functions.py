@@ -1,6 +1,7 @@
 import os
 
 import Image
+import ImageOps
 import numpy as np
 import cv2
 
@@ -141,21 +142,31 @@ def getDigitFromImageSimple(im):
 
     # Load the classifier
     digits_cls = os.path.join(os.path.dirname(__file__), 'res/digits_cls.pkl')
-    # clf, pp = joblib.load('res/digits_cls.pkl')
     clf, pp = joblib.load(digits_cls)
 
     im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     roi = im_gray
     # Threshold the image
     ret, im_th = cv2.threshold(roi, 190, 250, cv2.THRESH_BINARY_INV)
-    # roi = im_th
+    roi = im_th
 
     # Resize the image
     roi = cv2.resize(roi, (28, 28), interpolation=cv2.INTER_AREA)
-    roi = cv2.dilate(roi, (3, 3))
+
+    # first step
+    erosion = cv2.erode(roi, (2, 2), iterations=1)
+
+    # step 2
+    roi = cv2.dilate(erosion, (2, 2))
+
+    # noise_removal = cv2.bilateralFilter(roi, 5, 50, 50)
+
+    # cv2.namedWindow('erosion', cv2.WINDOW_NORMAL)
+    # cv2.imshow('erosion', erosion)
+    # cv2.waitKey(0)
 
     # cv2.namedWindow('roi', cv2.WINDOW_NORMAL)
-    # cv2.imshow('roi', im_th)
+    # cv2.imshow('roi', roi)
     # cv2.waitKey(0)
 
     # Calculate the HOG features
@@ -164,13 +175,7 @@ def getDigitFromImageSimple(im):
     nbr = clf.predict(roi_hog_fd)
     # cv2.putText(used_img, str(int(nbr[0])), (rect[0], rect[1]), cv2.FONT_HERSHEY_DUPLEX, 2, (0, 255, 255), 3)
     print 'main digit: ' + str(int(nbr[0]))
-    print 'predict: '
-    print nbr
     return int(nbr[0])
-
-
-def getDigitImage(im):
-    print im
 
 
 def get_line_coord_perpendicular(p1, p2, dist, first=True):
@@ -462,20 +467,20 @@ def EdgeDetect(file_name, thresh_min, thresh_max):
         # mask = np.zeros(im2.shape,np.uint8)
         # cv2.drawContours(mask,[cnt],0,255,-1)
         x, y, w, h = cv2.boundingRect(cnt)
-        if h > w and h > (digit_height * 4) / 5:
+        if h > w and h > (digit_height * 4) / 5 and w > min_width_digit and h < max_digit_height:
             # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
             box = image[y:y + h, x:x + w]
             name_box = file_name + '_' + str(i) + '_ctn.png'
             cv2.imwrite(name_box, box)
             # toA4(name_box)
-            file_name_pad = AddPadding(name_box)
+            file_name_pad = AddBorder(name_box)
             image_pad = cv2.imread(file_name_pad)
             digit = getDigitFromImageSimple(image_pad)
 
             details.append(digit)
 
 
-def AutCanny(image, sigma=0.33):
+def AutCanny(image, sigma=0.33, file_name='', save=False):
     # compute the median of the single channel pixel intensities
     v = np.median(image)
 
@@ -484,8 +489,12 @@ def AutCanny(image, sigma=0.33):
     upper = int(min(255, (1.0 + sigma) * v))
     edged = cv2.Canny(image, lower, upper)
 
+    res_file = ''
+    if save and file_name != '':
+        res_file = file_name + '_auto_canny.png'
+        cv2.imwrite(res_file, edged)
     # return the edged image
-    return edged
+    return res_file
 
 
 def RotateTransparent(res_file, angle=0):
@@ -514,17 +523,28 @@ def toA4(image_file):
     a4im.save(image_file + 'a4.pdf', 'PDF', quality=100)
 
 
-def AddPadding(img_file):
+def AddPadding(img_file, border=10, fill='#fff'):
     old_im = Image.open(img_file)
-    old_size = old_im.size
-
-    new_size = (50, 50)
-    new_im = Image.new("RGB", new_size, (255, 255, 255))
-    new_im.paste(old_im, ((new_size[0] - old_size[0]) / 2,
-                          (new_size[1] - old_size[1]) / 2))
+    img_with_border = ImageOps.expand(old_im, border=border, fill=fill)
 
     res_file = img_file + '_padding.png'
-    new_im.save(res_file)
+    img_with_border.save(res_file)
+    return res_file
+
+
+def AddBorder(img_file, color=None):
+    if color is None:
+        color = [255, 255, 255]
+    img = cv2.imread(img_file)
+    _, w, h = img.shape[::-1]
+    delta = h - w
+
+    top = bottom = 5
+    left = right = 5 + delta / 2
+    img_with_border = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+
+    res_file = img_file + '_padding.png'
+    cv2.imwrite(res_file, img_with_border)
     return res_file
 
 

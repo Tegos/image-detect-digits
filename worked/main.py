@@ -112,7 +112,7 @@ for name in images:
                     full_path = os.path.dirname(__file__) + '/../images/res/' + file_name + '_' + str(
                         r_angle) + '_digit_' + str(counter_all) + '.png'
                     # print full_path
-                    EdgeDetect(res_file_true, 128, 255)
+                    EdgeDetect(res_file_true, 120, 255)
 
                 if isImage(bracket_with_digit):
                     res_file = '../images/res/' + file_name + '_' + str(r_angle) + '_bracket_with_digit_' + str(
@@ -133,7 +133,6 @@ for name in images:
 
 cv2.destroyAllWindows()
 
-details = list(set(details))
 print details
 
 end = time.time()
