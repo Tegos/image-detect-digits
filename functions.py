@@ -294,7 +294,8 @@ def cropImage(image_source, point_1, point_2):
     return cropped
 
 
-def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, img_end_bracket, point_1, point_2):
+def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, img_end_bracket, point_1, point_2,
+                             image_debug):
     w_img, h_img = img.shape[::-1]
     w, h = img_bracket_middle.shape[::-1]
     result_1 = None
@@ -324,7 +325,7 @@ def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, img_end
         if stop:
             if DEBUG:
                 print find_pos[0], find_pos[1], counter
-                cv2.rectangle(img, new_point_1, new_point_2, (0, 0, 255), 2)
+                cv2.rectangle(image_debug, new_point_1, new_point_2, (0, 0, 255), 2)
             result_1 = (new_point_1[0], new_point_1[1] - h * k_size)
 
         add_x -= w / 2
@@ -350,8 +351,6 @@ def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, img_end
         x1, y1 = int(start_x), int(add_y_min)
         x2, y2 = int(add_x + w), int(add_y_max)
 
-        # if isInt(x1)
-
         cropped = img[y1:y2, x1:x2]
 
         # cv2.namedWindow('cropped', cv2.WINDOW_NORMAL)
@@ -364,7 +363,7 @@ def findCoordStartEndBracket(img, img_bracket_middle, img_start_bracket, img_end
         if stop:
             if DEBUG:
                 print find_pos[0], find_pos[1], counter
-                cv2.rectangle(img, new_point_1, new_point_2, (0, 0, 255), 2)
+                cv2.rectangle(image_debug, new_point_1, new_point_2, (0, 0, 255), 2)
             result_2 = (new_point_2[0], new_point_2[1])
 
         add_x += w / 2
@@ -422,7 +421,11 @@ def MultiScaleSearchTemplate(img, template, threshold=0.75):
 
 
 def isImage(image):
-    w, h = image.shape[::-1]
+    if image is not None:
+        w, h = image.shape[::-1]
+    else:
+        w = 0
+        h = 0
     if w > 0 and h > 0:
         return True
     return False
