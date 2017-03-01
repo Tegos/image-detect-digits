@@ -1,10 +1,13 @@
 import cv2
 import imutils as imutils
 
+from cv.ocrspace import ocr_space_file
 from functions import *
 from config import *
+import join
 import glob
 import time
+import train_digit_knn as tdk
 
 image_bracket_start = cv2.imread(image_bracket_start_path, 0)
 image_bracket_end = cv2.imread(image_bracket_end_path, 0)
@@ -17,6 +20,8 @@ images = glob.glob(path)
 # measure time executing
 start = time.time()
 total_images = 0
+
+mvr = tdk.MeterValueReader()
 
 for name in images:
     total_images += 1
@@ -112,7 +117,16 @@ for name in images:
                     full_path = os.path.dirname(__file__) + '/../images/res/' + file_name + '_' + str(
                         r_angle) + '_digit_' + str(counter_all) + '.png'
                     # print full_path
-                    EdgeDetect(res_file_true, 128, 255)
+                    # EdgeDetect(res_file_true, 128, 255)
+                    main_digit_arr = mvr.get_value(true_rotate_main_digit)
+                    main_digit_text = ''.join(main_digit_arr)
+                    # main_digit_text = ocr_space_file(filename=res_file_true)
+
+                    details.append(main_digit_text)
+                    # boxes = mvr.get_symbol_boxes(true_rotate_main_digit)
+                    # tdk.draw_boxes_and_show(true_rotate_main_digit, boxes)
+
+                    print main_digit_text
 
                 if isImage(bracket_with_digit):
                     res_file = '../images/res/' + file_name + '_' + str(r_angle) + '_bracket_with_digit_' + str(

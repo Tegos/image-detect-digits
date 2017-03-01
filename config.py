@@ -15,7 +15,7 @@ digit_height = 10
 max_digit_height = 33
 
 
-min_width_digit = 7
+min_width_digit = 5
 
 DEBUG = True
 k_size_bound_on_bracket = 1.2

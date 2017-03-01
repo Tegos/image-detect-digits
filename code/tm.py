@@ -3,7 +3,7 @@ import os
 
 from pytesser3 import *
 
-image_file = '../images/3.tif'
+image_file = '../images/22.png'
 p = os.path.join(os.path.dirname(__file__), image_file)
 print p
 im = Image.open(image_file)

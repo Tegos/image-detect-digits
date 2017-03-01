@@ -467,10 +467,10 @@ def EdgeDetect(file_name, thresh_min, thresh_max):
         # mask = np.zeros(im2.shape,np.uint8)
         # cv2.drawContours(mask,[cnt],0,255,-1)
         x, y, w, h = cv2.boundingRect(cnt)
-        if h > w and h > (digit_height * 4) / 5 and w > min_width_digit and h < max_digit_height:
+        if h > w and h > digit_height and w > min_width_digit and h < max_digit_height:
             # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
             box = image[y:y + h, x:x + w]
-            name_box = file_name + '_' + str(i) + '_ctn.png'
+            name_box = file_name + '_' + str(i) + '_ctn.tif'
             cv2.imwrite(name_box, box)
             # toA4(name_box)
             file_name_pad = AddBorder(name_box)
@@ -545,6 +545,8 @@ def AddBorder(img_file, color=None):
 
     res_file = img_file + '_padding.png'
     cv2.imwrite(res_file, img_with_border)
+    pil_img = Image.open(res_file)
+    pil_img.save(res_file + '_pil.tif', 'TIFF', quality=100)
     return res_file
 
 
