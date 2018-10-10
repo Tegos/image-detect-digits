@@ -1,7 +1,6 @@
 import os
 
-import Image
-import ImageOps
+from PIL import Image
 import numpy as np
 import cv2
 
@@ -453,31 +452,29 @@ def EdgeDetect(file_name, thresh_min, thresh_max):
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     im_bw = cv2.GaussianBlur(im_bw, (1, 1), 0)
-    # image = AutCanny(gray)
 
     (thresh, im_bw) = cv2.threshold(im_bw, thresh_min, thresh_max, 0)
     # cv2.imwrite(file_name + '_bw.png', im_bw)
 
     contours, hierarchy = cv2.findContours(im_bw, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    # cv2.drawContours(image, contours, -1, (0, 255, 0), 1)
-    # cv2.imwrite(file_name + '_ctn.png', image)
 
     for i in range(0, len(contours)):
         cnt = contours[i]
-        # mask = np.zeros(im2.shape,np.uint8)
-        # cv2.drawContours(mask,[cnt],0,255,-1)
         x, y, w, h = cv2.boundingRect(cnt)
-        if h > w and h > digit_height and w > min_width_digit and h < max_digit_height:
+        if h > w \
+                and h > digit_height \
+                and w > min_width_digit \
+                and (h / w) > ratio_wh \
+                and h < max_digit_height:
             # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
             box = image[y:y + h, x:x + w]
-            name_box = file_name + '_' + str(i) + '_ctn.tif'
+            name_box = file_name + '_' + str(i) + '_ctn.png'
             cv2.imwrite(name_box, box)
             # toA4(name_box)
-            file_name_pad = AddBorder(name_box)
-            image_pad = cv2.imread(file_name_pad)
-            digit = getDigitFromImageSimple(image_pad)
-
-            details.append(digit)
+            # file_name_pad = AddBorder(name_box)
+            # image_pad = cv2.imread(file_name_pad)
+            # digit = getDigitFromImageSimple(image_pad)
+            # details.append(digit)
 
 
 def AutCanny(image, sigma=0.33, file_name='', save=False):
@@ -532,21 +529,22 @@ def AddPadding(img_file, border=10, fill='#fff'):
     return res_file
 
 
-def AddBorder(img_file, color=None):
+def AddBorder(img_file, color=None, pad=0):
     if color is None:
         color = [255, 255, 255]
     img = cv2.imread(img_file)
     _, w, h = img.shape[::-1]
     delta = h - w
 
-    top = bottom = 5
-    left = right = 5 + delta / 2
+    if pad == 0:
+        top = bottom = 5
+        left = right = 5 + delta / 2
+    else:
+        top = bottom = left = right = pad
     img_with_border = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
 
     res_file = img_file + '_padding.png'
     cv2.imwrite(res_file, img_with_border)
-    pil_img = Image.open(res_file)
-    pil_img.save(res_file + '_pil.tif', 'TIFF', quality=100)
     return res_file
 
 
@@ -554,3 +552,98 @@ def writeText(data):
     text_file = open("result.txt", "w")
     text_file.write(data)
     text_file.close()
+
+
+def uniqueContour(contours):
+    contours_unique = []
+    for contour in contours:
+        x, y, width, height = cv2.boundingRect(contour)
+        if len(contours_unique) < 1:
+            contours_unique.append(contour)
+            continue
+        if cv2.contourArea(contour) < 100:
+            continue
+
+        for contour_unique in contours_unique:
+            x_u, y_u, width_u, height_u = cv2.boundingRect(contour_unique)
+            p1 = np.array((x, y))
+            p2 = np.array((x_u, y_u))
+
+            distance = dist(p1, p2)
+            print distance
+            if distance > 5 and distance != 0.0:
+                contours_unique.append(contour)
+    return contours_unique
+
+
+def dist(x, y):
+    return np.sqrt(np.sum((x - y) ** 2))
+
+
+def rotate_image(image, angle):
+    """
+    Rotates an OpenCV 2 / NumPy image about it's centre by the given angle
+    (in degrees). The returned image will be large enough to hold the entire
+    new image, with a black background
+    """
+
+    # Get the image size
+    # No that's not an error - NumPy stores image matricies backwards
+    image_size = (image.shape[1], image.shape[0])
+    image_center = tuple(np.array(image_size) / 2)
+
+    # Convert the OpenCV 3x2 rotation matrix to 3x3
+    rot_mat = np.vstack(
+        [cv2.getRotationMatrix2D(image_center, angle, 1.0), [0, 0, 1]]
+    )
+
+    rot_mat_notranslate = np.matrix(rot_mat[0:2, 0:2])
+
+    # Shorthand for below calcs
+    image_w2 = image_size[0] * 0.5
+    image_h2 = image_size[1] * 0.5
+
+    # Obtain the rotated coordinates of the image corners
+    rotated_coords = [
+        (np.array([-image_w2, image_h2]) * rot_mat_notranslate).A[0],
+        (np.array([image_w2, image_h2]) * rot_mat_notranslate).A[0],
+        (np.array([-image_w2, -image_h2]) * rot_mat_notranslate).A[0],
+        (np.array([image_w2, -image_h2]) * rot_mat_notranslate).A[0]
+    ]
+
+    # Find the size of the new image
+    x_coords = [pt[0] for pt in rotated_coords]
+    x_pos = [x for x in x_coords if x > 0]
+    x_neg = [x for x in x_coords if x < 0]
+
+    y_coords = [pt[1] for pt in rotated_coords]
+    y_pos = [y for y in y_coords if y > 0]
+    y_neg = [y for y in y_coords if y < 0]
+
+    right_bound = max(x_pos)
+    left_bound = min(x_neg)
+    top_bound = max(y_pos)
+    bot_bound = min(y_neg)
+
+    new_w = int(abs(right_bound - left_bound))
+    new_h = int(abs(top_bound - bot_bound))
+
+    # We require a translation matrix to keep the image centred
+    trans_mat = np.matrix([
+        [1, 0, int(new_w * 0.5 - image_w2)],
+        [0, 1, int(new_h * 0.5 - image_h2)],
+        [0, 0, 1]
+    ])
+
+    # Compute the tranform for the combined rotation and translation
+    affine_mat = (np.matrix(trans_mat) * np.matrix(rot_mat))[0:2, :]
+
+    # Apply the transform
+    result = cv2.warpAffine(
+        image,
+        affine_mat,
+        (new_w, new_h),
+        flags=cv2.INTER_LINEAR
+    )
+
+    return result

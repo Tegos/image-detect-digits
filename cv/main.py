@@ -1,10 +1,8 @@
 import cv2
 import imutils as imutils
 
-from cv.ocrspace import ocr_space_file
 from functions import *
 from config import *
-import join
 import glob
 import time
 import train_digit_knn as tdk
@@ -38,6 +36,12 @@ for name in images:
     if w_original > width_for_source:
         img_rgb = imutils.resize(img_rgb, width=width_for_source)
 
+    if h_original > height_for_source:
+        img_rgb = imutils.resize(img_rgb, height=height_for_source)
+
+    # if h_original > width_for_source:
+    #     img_rgb = imutils.resize(img_rgb, height=width_for_source)
+
     _, w_original, h_original = img_rgb.shape[::-1]
     print w_original, h_original
 
@@ -53,6 +57,10 @@ for name in images:
         rotated_source_original = imutils.rotate_bound(img_rgb, r_angle)
         rotated_source_original = rotated_source.copy()
         rotated_source_debug = rotated_source.copy()
+
+        # rotated_source_original[np.where(rotated_source_original == [0])] = [1]
+
+        # rotated_source_original[mask == 255] = (255, 255, 255)
 
         # cv2.namedWindow('rotated_source_original', cv2.WINDOW_NORMAL)
         # cv2.imshow('rotated_source_original', rotated_source_original)
@@ -109,6 +117,9 @@ for name in images:
 
                 if isImage(cropMainDigit):
                     true_rotate_main_digit = imutils.rotate_bound(cropMainDigit, -r_angle)
+
+                    # true_rotate_main_digit[np.where(true_rotate_main_digit == [0])] = [255]
+
                     res_file_true = '../images/res/' + file_name + '_' + str(r_angle) + '_rotate_digit_' + str(
                         counter_all) + '.png'
                     res_file = '../images/res/' + file_name + '_' + str(r_angle) + '_digit_' + str(counter_all) + '.png'
@@ -117,14 +128,20 @@ for name in images:
                     full_path = os.path.dirname(__file__) + '/../images/res/' + file_name + '_' + str(
                         r_angle) + '_digit_' + str(counter_all) + '.png'
                     # print full_path
-                    # EdgeDetect(res_file_true, 128, 255)
-                    main_digit_arr = mvr.get_value(true_rotate_main_digit)
+
+                    file_name_pad = AddBorder(res_file_true, pad=7)
+
+                    image_pad = cv2.imread(file_name_pad, 0)
+
+                    EdgeDetect(file_name_pad, 120, 255)
+
+                    main_digit_arr = mvr.get_value(image_pad)
                     main_digit_text = ''.join(main_digit_arr)
                     # main_digit_text = ocr_space_file(filename=res_file_true)
 
                     details.append(main_digit_text)
-                    # boxes = mvr.get_symbol_boxes(true_rotate_main_digit)
-                    # tdk.draw_boxes_and_show(true_rotate_main_digit, boxes)
+                    boxes = mvr.get_symbol_boxes(true_rotate_main_digit)
+                    tdk.draw_boxes_and_show(true_rotate_main_digit, boxes)
 
                     print main_digit_text
 

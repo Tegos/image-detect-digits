@@ -2,8 +2,9 @@ import os
 import cv2
 import numpy
 from config import *
+from functions import uniqueContour
 
-KNN_SQUARE_SIDE_W = 10
+KNN_SQUARE_SIDE_W = 20
 KNN_SQUARE_SIDE_H = 20
 
 
@@ -25,9 +26,12 @@ def draw_box(cv_image, box):
 def draw_boxes_and_show(cv_image, boxes, title='N'):
     temp_image = cv2.cvtColor(cv_image, cv2.COLOR_GRAY2RGB)
     for box in boxes:
+        croped = crop(temp_image, box)
+        _, w, h = croped.shape[::-1]
+        # print 'w = ', w, 'h = ', h
         draw_box(temp_image, box)
-    cv2.imshow(title, temp_image)
-    cv2.waitKey(0)
+        cv2.imshow(title, temp_image)
+        cv2.waitKey(0)
 
 
 class BaseKnnMatcher(object):
@@ -67,8 +71,8 @@ class BaseKnnMatcher(object):
     def predict(self, image):
         image_standard_size = cv2.resize(image, (KNN_SQUARE_SIDE_W, KNN_SQUARE_SIDE_H))
 
-        cv2.namedWindow('suit_image_standard_size', cv2.WINDOW_NORMAL)
-        cv2.imshow('suit_image_standard_size', image_standard_size)
+        # cv2.namedWindow('suit_image_standard_size', cv2.WINDOW_NORMAL)
+        # cv2.imshow('suit_image_standard_size', image_standard_size)
         # cv2.waitKey(0)
 
         image_standard_size = numpy.float32(image_standard_size.reshape((1, KNN_SQUARE_SIDE_W * KNN_SQUARE_SIDE_H)))
@@ -91,19 +95,50 @@ class MeterValueReader(object):
 
     @classmethod
     def get_symbol_boxes(cls, cv_image):
-        ret, thresh = cv2.threshold(cv_image.copy(), 128, 255, cv2.THRESH_BINARY)
+
+        im_bw = cv2.GaussianBlur(cv_image, (5, 5), 0)
+        cv_image = cv2.blur(cv_image, (1, 1))
+
+        ret, thresh = cv2.threshold(cv_image.copy(), 120, 255, cv2.THRESH_BINARY)
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+        # hierarchy = hierarchy[0]
+
         symbol_boxes = []
+        contours_new = []
+
+        max_area = 0
+        rect = []
+        for ctr in contours:
+            max_area = max(max_area, cv2.contourArea(ctr))
+
+        area_ratio = 0.01
+
+        contour_counter = 0
         for contour in contours:
+            # current_hierarchy = hierarchy[contour_counter]
+            # print current_hierarchy
+            # print component
+            inside_contour = hierarchy[0, contour_counter, 3]
+            # print is_inside_contour
+
             x, y, width, height = cv2.boundingRect(contour)
 
-            # You can test here for box size, though not required in your example:
-            # if cls.is_size_of_digit(width, height):
-            #     symbol_boxes.append((x, y, x+width, y+height))
+            if cv2.contourArea(contour) > max_area * area_ratio:
+                rect.append(cv2.boundingRect(cv2.approxPolyDP(contour, 1, True)))
 
-            if height > width and height > digit_height and width > min_width_digit and height < max_digit_height:
+            not_inside_contour = inside_contour < 1
+            condition_for_ration_digit = (height / width) > ratio_wh
+
+            if height > width and height > digit_height \
+                    and width > min_width_digit \
+                    and height < max_digit_height \
+                    and not_inside_contour \
+                    and condition_for_ration_digit:
+                contours_new.append(contour)
                 symbol_boxes.append((x, y, x + width, y + height))
+            contour_counter += 1
+
         return symbol_boxes
 
     def get_value(self, meter_cv2_image):
@@ -128,7 +163,7 @@ if __name__ == '__main__':
     #     # You need to label templates manually after extraction
     #     cv2.imwrite(os.path.join(TEMPLATE_DIR, '%s.png' % random.randint(0, 1000)), crop(img_bw, box))
 
-    img_bw = cv2.imread('../images/29.png', 0)
+    img_bw = cv2.imread('../images/_temp/q.png', 0)
     mvr = MeterValueReader()
     print mvr.get_value(img_bw)
 
